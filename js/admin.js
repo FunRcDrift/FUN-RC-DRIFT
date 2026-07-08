@@ -1,6 +1,6 @@
 import { supabase } from './supabase-client.js';
 import { IS_CONFIGURED } from './config.js';
-import { initShell, setupNotice, setStatus, toast } from './common.js';
+import { initShell, setupNotice, setStatus, toast } from './common.js?v=20260708d';
 
 const user = await initShell();
 setupNotice(document.querySelector('.page'));

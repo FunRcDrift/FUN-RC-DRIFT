@@ -41,7 +41,7 @@ async function resolveAuthenticatedUser() {
   if (!session && (code || hasAuthFragment)) session = await waitForAuthSession();
   if (!session) return null;
   const { data: { user }, error } = await supabase.auth.getUser();
-  return error ? null : user;
+  return error ? session.user : user;
 }
 
 export async function initShell(){header();if(!supabase)return null;const user=await resolveAuthenticatedUser();document.querySelectorAll('[data-auth],[data-logout]').forEach(x=>x.hidden=!user);document.querySelectorAll('[data-guest]').forEach(x=>x.hidden=!!user);if(user){const {data:p}=await supabase.from('pilotes').select('role').eq('id',user.id).maybeSingle();document.querySelectorAll('[data-admin]').forEach(x=>x.hidden=p?.role!=='admin');document.querySelector('[data-logout]')?.addEventListener('click',async()=>{await supabase.auth.signOut();location.href='index.html'})}return user;}

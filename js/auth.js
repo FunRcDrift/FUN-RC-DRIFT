@@ -1,6 +1,6 @@
 import { supabase } from './supabase-client.js';
 import { SITE_URL, IS_CONFIGURED } from './config.js';
-import { initShell, setupNotice, setStatus } from './common.js';
+import { initShell, setupNotice, setStatus } from './common.js?v=20260708d';
 
 const form = document.querySelector('form');
 const status = document.querySelector('#status');
@@ -113,9 +113,10 @@ form?.addEventListener('submit', async event => {
     }
 
     if (form.id === 'loginForm') {
-      const { error } = await supabase.auth.signInWithPassword({ email: form.email.value, password: form.password.value });
+      const { data, error } = await supabase.auth.signInWithPassword({ email: form.email.value, password: form.password.value });
       if (error) throw error;
-      location.href = 'profil.html';
+      if (!data.session) throw new Error('La session n’a pas pu être créée. Recharge la page et réessaie.');
+      location.replace(new URL('profil.html', location.href).href);
     }
 
     if (form.id === 'resetForm') {
