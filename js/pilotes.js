@@ -1,5 +1,5 @@
 import { supabase } from './supabase-client.js';
-import { initShell, setupNotice, calculateExperience, esc } from './common.js?v=20260708d';
+import { initShell, setupNotice, calculateExperience, esc } from './common.js?v=20260708e';
 
 const demos = [
   {id:'demo-1',pseudo:'Sideways',nom:'Martin',prenom:'Alex',chassis:'Reve D RDX',date_debut_rc_drift:'2020-06-01',gz_approved:true,photo_url:'assets/logo-frd.jpeg',carrosserie_url:null},
