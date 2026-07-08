@@ -1,46 +1,13 @@
 import { supabase } from './supabase-client.js';
 import { IS_CONFIGURED } from './config.js';
-export const esc = value => String(value ?? '').trim();
-export function calculateExperience(dateString){if(!dateString)return '—';const start=new Date(`${dateString}T00:00:00`),now=new Date();let years=now.getFullYear()-start.getFullYear();const anniversary=new Date(now.getFullYear(),start.getMonth(),start.getDate());if(now<anniversary)years--;years=Math.max(0,years);if(years===0){const months=Math.max(0,(now.getFullYear()-start.getFullYear())*12+now.getMonth()-start.getMonth());return `${months} mois`;}return `${years} an${years>1?'s':''}`;}
-export function header(){const el=document.createElement('header');el.className='site-header';el.innerHTML=`<nav class="nav"><a class="brand" href="index.html"><img src="assets/logo-frd.jpeg" alt=""><span>FRD Fun RC Drift</span></a><button class="mobile-menu" aria-label="Ouvrir le menu">☰</button><div class="nav-links"><a href="pilotes.html">Pilotes</a><a href="espace-pilote.html" data-auth>Mon profil</a><a href="admin.html" data-admin hidden>Administration</a><a href="espace-pilote.html" data-guest>Connexion</a><button data-logout hidden>Déconnexion</button></div></nav>`;document.body.prepend(el);const menu=el.querySelector('.mobile-menu'),links=el.querySelector('.nav-links');menu.onclick=()=>links.classList.toggle('open');}
-export function toast(message){let el=document.querySelector('.toast');if(!el){el=document.createElement('div');el.className='toast';document.body.append(el)}el.textContent=message;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2600)}
-export function setStatus(el,message,type=''){el.textContent=message;el.className=`status ${type}`;el.hidden=false}
-export function setupNotice(parent){if(IS_CONFIGURED)return;const n=document.createElement('div');n.className='setup-notice';n.innerHTML='<strong>Mode aperçu</strong> — Connecte ce site à Supabase dans <code>js/config.js</code> pour activer les comptes, les profils et les photos.';parent.prepend(n)}
-async function waitForAuthSession(timeout = 3000) {
-  return new Promise(resolve => {
-    let finished = false;
-    let subscription;
-    const listener = supabase.auth.onAuthStateChange((event, session) => {
-      if (!finished && session && ['SIGNED_IN', 'INITIAL_SESSION', 'PASSWORD_RECOVERY'].includes(event)) {
-        finished = true;
-        subscription?.unsubscribe();
-        resolve(session);
-      }
-    });
-    subscription = listener.data.subscription;
-    setTimeout(() => {
-      if (finished) return;
-      finished = true;
-      subscription?.unsubscribe();
-      resolve(null);
-    }, timeout);
-  });
-}
-
-async function resolveAuthenticatedUser() {
-  let { data: { session } } = await supabase.auth.getSession();
-  const code = new URLSearchParams(location.search).get('code');
-  if (!session && code) {
-    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) {
-      session = data.session;
-      history.replaceState({}, document.title, location.pathname);
-    }
-  }
-  const hasAuthFragment = location.hash.includes('access_token=') || location.hash.includes('type=');
-  if (!session && (code || hasAuthFragment)) session = await waitForAuthSession();
-  if (!session) return null;
-  return session.user;
-}
-
-export async function initShell(){header();if(!supabase)return null;const user=await resolveAuthenticatedUser();document.querySelectorAll('[data-auth],[data-logout]').forEach(x=>x.hidden=!user);document.querySelectorAll('[data-guest]').forEach(x=>x.hidden=!!user);if(user){const {data:p}=await supabase.from('pilotes').select('role').eq('id',user.id).maybeSingle();document.querySelectorAll('[data-admin]').forEach(x=>x.hidden=p?.role!=='admin');document.querySelector('[data-logout]')?.addEventListener('click',async()=>{await supabase.auth.signOut();location.href='index.html'})}return user;}
+import { header,setStatus,calculateExperience,toast } from './common.js?v=20260708f';
+header();
+const loginView=document.querySelector('#loginView'),profileView=document.querySelector('#profileView'),loginForm=document.querySelector('#inlineLoginForm'),profileForm=document.querySelector('#inlineProfileForm'),loginStatus=document.querySelector('#loginStatus'),profileStatus=document.querySelector('#profileStatus');let user=null,profile={};
+function showLogin(){loginView.hidden=false;profileView.hidden=true;document.querySelectorAll('[data-auth]').forEach(x=>x.hidden=true);document.querySelectorAll('[data-guest]').forEach(x=>x.hidden=false)}
+async function showProfile(u){user=u;loginView.hidden=true;profileView.hidden=false;document.querySelectorAll('[data-auth]').forEach(x=>x.hidden=false);document.querySelectorAll('[data-guest]').forEach(x=>x.hidden=true);const {data,error}=await supabase.from('pilotes').select('*').eq('id',user.id).maybeSingle();if(error)return setStatus(profileStatus,error.message,'error');profile=data||{};if(!data){profileForm.prenom.value=user.user_metadata?.prenom||'';profileForm.nom.value=user.user_metadata?.nom||''}Object.entries(profile).forEach(([k,v])=>{const input=profileForm.elements[k];if(input&&input.type!=='checkbox'&&input.type!=='file')input.value=v??''});profileForm.gz_requested.checked=!!profile.gz_requested;document.querySelector('#avatarPreview').src=profile.photo_url||'assets/logo-frd.jpeg';document.querySelector('#experiencePreview').textContent=calculateExperience(profile.date_debut_rc_drift);if(data&&!profile.paddock_approved)setStatus(profileStatus,'Ta carte attend la validation d’un administrateur.')}
+loginForm.addEventListener('submit',async e=>{e.preventDefault();if(!IS_CONFIGURED)return setStatus(loginStatus,'Supabase n’est pas configuré.','error');loginForm.classList.add('loading');try{const {data,error}=await supabase.auth.signInWithPassword({email:loginForm.email.value,password:loginForm.password.value});if(error)throw error;if(!data.user)throw new Error('Connexion impossible.');await showProfile(data.user)}catch(error){setStatus(loginStatus,error.message,'error')}finally{loginForm.classList.remove('loading')}});
+async function upload(name,prefix,urlField,pathField){const file=profileForm.elements[name].files[0];if(!file)return {[urlField]:profile[urlField]||null,[pathField]:profile[pathField]||null};if(file.size>3145728)throw new Error('Chaque photo doit faire moins de 3 Mo.');const ext=file.name.split('.').pop().toLowerCase(),path=`${user.id}/${prefix}.${ext}`;const {error}=await supabase.storage.from('avatars').upload(path,file,{upsert:true,contentType:file.type});if(error)throw error;return {[urlField]:supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl,[pathField]:path}}
+profileForm.date_debut_rc_drift.addEventListener('change',()=>document.querySelector('#experiencePreview').textContent=calculateExperience(profileForm.date_debut_rc_drift.value));
+profileForm.addEventListener('submit',async e=>{e.preventDefault();profileForm.classList.add('loading');try{const images=Object.assign({},await upload('photo','pilote','photo_url','photo_path'),await upload('photo_carrosserie','carrosserie','carrosserie_url','carrosserie_path'),await upload('photo_chassis','chassis','chassis_url','chassis_path'));const fields=['nom','prenom','pseudo','chassis','moteur','esc','servo','gyro','radio','batterie','pneus','carrosserie','date_debut_rc_drift','style_pilotage','objectifs'];const payload=Object.fromEntries(fields.map(k=>[k,profileForm.elements[k].value.trim()||null]));Object.assign(payload,images,{gz_requested:profileForm.gz_requested.checked});const {error}=await supabase.from('pilotes').update(payload).eq('id',user.id);if(error)throw error;profile={...profile,...payload};document.querySelector('#avatarPreview').src=profile.photo_url||'assets/logo-frd.jpeg';setStatus(profileStatus,'Profil enregistré. Il sera visible après validation par un administrateur.','success');toast('Profil mis à jour')}catch(error){setStatus(profileStatus,error.message,'error')}finally{profileForm.classList.remove('loading')}});
+document.querySelector('#inlineLogout').addEventListener('click',async()=>{await supabase.auth.signOut();user=null;profile={};loginForm.reset();showLogin()});
+const {data:{session}}=await supabase.auth.getSession();session?.user?await showProfile(session.user):showLogin();
