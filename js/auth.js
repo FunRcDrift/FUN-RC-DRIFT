@@ -1,6 +1,6 @@
 ﻿import { supabase } from './supabase-client.js';
 import { SITE_URL, IS_CONFIGURED } from './config.js';
-import { initShell, setupNotice, setStatus } from './common.js?v=20260708h';
+import { initShell, setupNotice, setStatus } from './common.js?v=20260708j';
 
 const form = document.querySelector('form');
 const status = document.querySelector('#status');

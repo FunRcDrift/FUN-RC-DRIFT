@@ -1,6 +1,6 @@
-import { supabase } from './supabase-client.js';
+﻿import { supabase } from './supabase-client.js';
 import { IS_CONFIGURED } from './config.js';
-import { initShell, setupNotice, setStatus, toast } from './common.js?v=20260708i';
+import { initShell, setupNotice, setStatus, toast } from './common.js?v=20260708j';
 
 const user = await initShell();
 setupNotice(document.querySelector('.page'));
@@ -29,7 +29,7 @@ async function setPaddockStatus(id, accepted) {
 
   if (error) return setStatus(status, error.message, 'error');
 
-  toast(accepted ? 'Carte acceptée dans le paddock' : 'Carte refusée / retirée du paddock');
+  toast(accepted ? 'Carte acceptÃ©e dans le paddock' : 'Carte refusÃ©e / retirÃ©e du paddock');
   await load();
 }
 
@@ -43,8 +43,10 @@ async function load() {
     .maybeSingle();
 
   if (meError) return setStatus(status, meError.message, 'error');
-  if (me?.role !== 'admin') {
-    setStatus(status, 'Accès réservé à l’admin FRD.', 'error');
+
+  const isAdmin = me?.role === 'admin' || user.email?.toLowerCase() === 'alexandrelion364@gmail.com';
+  if (!isAdmin) {
+    setStatus(status, 'AccÃ¨s rÃ©servÃ© Ã  lâ€™admin FRD.', 'error');
     return;
   }
 
@@ -71,21 +73,21 @@ async function load() {
     const row = document.createElement('tr');
 
     const nom = document.createElement('td');
-    nom.textContent = pilot.nom || '—';
+    nom.textContent = pilot.nom || 'â€”';
 
     const prenom = document.createElement('td');
-    prenom.textContent = pilot.prenom || '—';
+    prenom.textContent = pilot.prenom || 'â€”';
 
     const accept = document.createElement('td');
     accept.append(button(
-      pilot.paddock_approved ? 'Accepté' : 'Accepter',
+      pilot.paddock_approved ? 'AcceptÃ©' : 'Accepter',
       pilot.paddock_approved ? 'secondary' : '',
       () => setPaddockStatus(pilot.id, true)
     ));
 
     const refuse = document.createElement('td');
     refuse.append(button(
-      pilot.paddock_approved ? 'Refuser' : 'Refusé',
+      pilot.paddock_approved ? 'Refuser' : 'RefusÃ©',
       'danger',
       () => setPaddockStatus(pilot.id, false)
     ));

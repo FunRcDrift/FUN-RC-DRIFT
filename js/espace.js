@@ -1,6 +1,6 @@
-import { clearFrdSession, restoreFrdSession, saveFrdSession, supabase } from './supabase-client.js';
+﻿import { clearFrdSession, restoreFrdSession, saveFrdSession, supabase } from './supabase-client.js';
 import { IS_CONFIGURED } from './config.js';
-import { header, setStatus, calculateExperience, toast } from './common.js?v=20260708g';
+import { header, setStatus, calculateExperience, toast } from './common.js?v=20260708j';
 
 header();
 
@@ -55,13 +55,13 @@ async function showProfile(currentUser) {
   document.querySelector('#experiencePreview').textContent = calculateExperience(profile.date_debut_rc_drift);
 
   if (data && !profile.paddock_approved) {
-    setStatus(profileStatus, 'Ta carte attend la validation d’un administrateur.');
+    setStatus(profileStatus, 'Ta carte attend la validation dâ€™un administrateur.');
   }
 }
 
 loginForm.addEventListener('submit', async event => {
   event.preventDefault();
-  if (!IS_CONFIGURED) return setStatus(loginStatus, 'Supabase n’est pas configuré.', 'error');
+  if (!IS_CONFIGURED) return setStatus(loginStatus, 'Supabase nâ€™est pas configurÃ©.', 'error');
 
   loginForm.classList.add('loading');
   try {
@@ -86,7 +86,7 @@ async function upload(name, prefix, urlField, pathField) {
   const file = profileForm.elements[name].files[0];
   if (!file) return { [urlField]: profile[urlField] || null, [pathField]: null };
   if (file.size > 6291456) throw new Error('Chaque photo doit faire moins de 6 Mo.');
-  if (!file.type.startsWith('image/')) throw new Error('Le fichier sélectionné doit être une image.');
+  if (!file.type.startsWith('image/')) throw new Error('Le fichier sÃ©lectionnÃ© doit Ãªtre une image.');
 
   const source = URL.createObjectURL(file);
 
@@ -94,7 +94,7 @@ async function upload(name, prefix, urlField, pathField) {
     const image = await new Promise((resolve, reject) => {
       const img = new Image();
       img.onload = () => resolve(img);
-      img.onerror = () => reject(new Error('Cette image ne peut pas être lue.'));
+      img.onerror = () => reject(new Error('Cette image ne peut pas Ãªtre lue.'));
       img.src = source;
     });
 
@@ -162,8 +162,8 @@ profileForm.addEventListener('submit', async event => {
 
     profile = { ...profile, ...payload };
     document.querySelector('#avatarPreview').src = profile.photo_url || 'assets/logo-frd.jpeg';
-    setStatus(profileStatus, 'Profil enregistré. Il sera visible après validation par un administrateur.', 'success');
-    toast('Profil mis à jour');
+    setStatus(profileStatus, 'Profil enregistrÃ©. Il sera visible aprÃ¨s validation par un administrateur.', 'success');
+    toast('Profil mis Ã  jour');
   } catch (error) {
     setStatus(profileStatus, error.message, 'error');
   } finally {
