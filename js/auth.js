@@ -27,7 +27,7 @@ const currentUser = await initShell();
 setupNotice(document.querySelector('main'));
 
 if (currentUser && ['signupForm', 'loginForm', 'resetForm'].includes(form?.id)) {
-  location.replace('profil.html');
+  location.replace('espace-pilote.html');
 }
 
 function lockPasswordForm(locked) {
@@ -103,7 +103,7 @@ form?.addEventListener('submit', async event => {
         email,
         password,
         options: {
-          emailRedirectTo: `${SITE_URL}/profil.html`,
+          emailRedirectTo: `${SITE_URL}/espace-pilote.html`,
           data: { nom: form.nom.value, prenom: form.prenom.value }
         }
       });
@@ -124,7 +124,7 @@ form?.addEventListener('submit', async event => {
       const { data: storedSession } = await supabase.auth.getSession();
       if (!storedSession.session) throw new Error('Le navigateur n’a pas pu enregistrer la session. Autorise le stockage du site puis réessaie.');
       setStatus(status, 'Connexion réussie. Ouverture de ton profil…', 'success');
-      setTimeout(() => location.replace(new URL('profil.html', location.href).href), 500);
+      setTimeout(() => location.replace(new URL('espace-pilote.html', location.href).href), 500);
     }
 
     if (form.id === 'resetForm') {
@@ -144,7 +144,7 @@ form?.addEventListener('submit', async event => {
       setStatus(status, 'Mot de passe mis à jour. Redirection vers la connexion…', 'success');
       form.reset();
       await supabase.auth.signOut();
-      setTimeout(() => location.href = 'connexion.html', 1600);
+      setTimeout(() => location.href = 'espace-pilote.html', 1600);
     }
   } catch (error) {
     setStatus(status, friendlyAuthMessage(error), 'error');
