@@ -26,6 +26,7 @@ create table if not exists public.pilotes (
   chassis_path text,
   gz_requested boolean not null default false,
   gz_approved boolean not null default false,
+  paddock_approved boolean not null default false,
   role text not null default 'pilote' check (role in ('pilote','admin')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -43,6 +44,7 @@ alter table public.pilotes add column if not exists carrosserie_url text;
 alter table public.pilotes add column if not exists carrosserie_path text;
 alter table public.pilotes add column if not exists chassis_url text;
 alter table public.pilotes add column if not exists chassis_path text;
+alter table public.pilotes add column if not exists paddock_approved boolean not null default false;
 
 alter table public.pilotes enable row level security;
 
@@ -57,6 +59,7 @@ begin
   if not public.is_frd_admin() then
     new.role := old.role;
     new.gz_approved := old.gz_approved;
+    new.paddock_approved := old.paddock_approved;
   end if;
   new.updated_at := now();
   return new;
@@ -77,7 +80,12 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created after insert on auth.users for each row execute function public.create_pilote_profile();
 
 drop policy if exists "Profils visibles publiquement" on public.pilotes;
-create policy "Profils visibles publiquement" on public.pilotes for select to anon, authenticated using (true);
+create policy "Profils visibles publiquement" on public.pilotes for select to anon, authenticated
+using (
+  paddock_approved = true
+  or id = (select auth.uid())
+  or (select public.is_frd_admin())
+);
 drop policy if exists "Le pilote modifie son profil" on public.pilotes;
 create policy "Le pilote modifie son profil" on public.pilotes for update to authenticated using ((select auth.uid()) = id) with check ((select auth.uid()) = id);
 drop policy if exists "Admin modifie les profils" on public.pilotes;
@@ -86,7 +94,7 @@ create policy "Admin modifie les profils" on public.pilotes for update to authen
 grant select on public.pilotes to anon, authenticated;
 grant update on public.pilotes to authenticated;
 revoke insert, delete on public.pilotes from anon, authenticated;
-grant execute on function public.is_frd_admin() to authenticated;
+grant execute on function public.is_frd_admin() to anon, authenticated;
 
 insert into storage.buckets(id,name,public,file_size_limit,allowed_mime_types)
 values('avatars','avatars',true,3145728,array['image/jpeg','image/png','image/webp'])

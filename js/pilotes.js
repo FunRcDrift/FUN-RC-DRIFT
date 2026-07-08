@@ -27,5 +27,5 @@ function card(p){
 }
 
 await initShell();const page=document.querySelector('.page');setupNotice(page);const grid=document.querySelector('#pilotsGrid');let profiles=demos;
-if(supabase&&!new URLSearchParams(location.search).has('demo')){const {data,error}=await supabase.from('pilotes').select('id,pseudo,nom,prenom,chassis,date_debut_rc_drift,gz_approved,photo_url,carrosserie_url').order('pseudo');if(!error)profiles=data||[];else document.querySelector('#loadStatus').textContent='Impossible de charger le paddock.'}
+if(supabase&&!new URLSearchParams(location.search).has('demo')){const {data,error}=await supabase.from('pilotes').select('id,pseudo,nom,prenom,chassis,date_debut_rc_drift,gz_approved,photo_url,carrosserie_url').eq('paddock_approved',true).order('pseudo');if(!error)profiles=data||[];else document.querySelector('#loadStatus').textContent='Impossible de charger le paddock.'}
 grid.replaceChildren();if(!profiles.length){const e=document.createElement('div');e.className='empty';e.textContent='Le paddock est encore vide.';grid.append(e)}else profiles.forEach(p=>grid.append(card(p)));

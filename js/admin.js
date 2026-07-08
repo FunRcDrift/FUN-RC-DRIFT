@@ -1,2 +1,77 @@
-import { supabase } from './supabase-client.js';import { IS_CONFIGURED } from './config.js';import { initShell,setupNotice,setStatus,toast } from './common.js';
-const user=await initShell();setupNotice(document.querySelector('.page'));const status=document.querySelector('#status'),body=document.querySelector('#adminBody');if(IS_CONFIGURED&&!user)location.href='connexion.html';async function load(){if(!supabase)return;const {data:me}=await supabase.from('pilotes').select('role').eq('id',user.id).single();if(me?.role!=='admin')return location.href='profil.html';const {data,error}=await supabase.from('pilotes').select('id,prenom,nom,gz_requested,gz_approved,role,created_at').order('created_at');if(error)return setStatus(status,error.message,'error');body.replaceChildren();data.forEach(p=>{const tr=document.createElement('tr');const identity=document.createElement('td');identity.textContent=`${p.prenom||''} ${p.nom||''}`;const request=document.createElement('td');request.textContent=p.gz_requested?'Oui':'Non';const approved=document.createElement('td'),toggle=document.createElement('button');toggle.className='btn small secondary';toggle.textContent=p.gz_approved?'Retirer':'Valider';toggle.onclick=async()=>{const {error}=await supabase.from('pilotes').update({gz_approved:!p.gz_approved}).eq('id',p.id);if(error)setStatus(status,error.message,'error');else{toast('Badge mis à jour');load()}};approved.append(toggle);const role=document.createElement('td');role.textContent=p.role;const actions=document.createElement('td'),del=document.createElement('button');del.className='btn small danger';del.textContent='Supprimer';del.onclick=async()=>{if(!confirm(`Supprimer définitivement le compte de ${p.prenom} ${p.nom} ?`))return;const {error}=await supabase.functions.invoke('delete-account',{body:{userId:p.id}});if(error)setStatus(status,error.message,'error');else load()};actions.append(del);tr.append(identity,request,approved,role,actions);body.append(tr)})}load();
+import { supabase } from './supabase-client.js';
+import { IS_CONFIGURED } from './config.js';
+import { initShell, setupNotice, setStatus, toast } from './common.js';
+
+const user = await initShell();
+setupNotice(document.querySelector('.page'));
+const status = document.querySelector('#status');
+const body = document.querySelector('#adminBody');
+if (IS_CONFIGURED && !user) location.href = 'connexion.html';
+
+async function updatePilot(id, values, message) {
+  const { error } = await supabase.from('pilotes').update(values).eq('id', id);
+  if (error) return setStatus(status, error.message, 'error');
+  toast(message);
+  await load();
+}
+
+function actionButton(label, className, handler) {
+  const button = document.createElement('button');
+  button.className = `btn small ${className}`;
+  button.type = 'button';
+  button.textContent = label;
+  button.onclick = handler;
+  return button;
+}
+
+async function load() {
+  if (!supabase) return;
+  const { data: me } = await supabase.from('pilotes').select('role').eq('id', user.id).single();
+  if (me?.role !== 'admin') return location.href = 'profil.html';
+
+  const { data, error } = await supabase
+    .from('pilotes')
+    .select('id,prenom,nom,pseudo,paddock_approved,gz_requested,gz_approved,role,created_at')
+    .order('created_at');
+  if (error) return setStatus(status, error.message, 'error');
+
+  body.replaceChildren();
+  data.forEach(pilot => {
+    const row = document.createElement('tr');
+    const identity = document.createElement('td');
+    identity.textContent = `${pilot.pseudo ? `${pilot.pseudo} — ` : ''}${pilot.prenom || ''} ${pilot.nom || ''}`;
+
+    const paddock = document.createElement('td');
+    paddock.append(actionButton(
+      pilot.paddock_approved ? 'Retirer du paddock' : 'Accepter la carte',
+      pilot.paddock_approved ? 'danger' : '',
+      () => updatePilot(pilot.id, { paddock_approved: !pilot.paddock_approved }, pilot.paddock_approved ? 'Carte retirée du paddock' : 'Carte publiée dans le paddock')
+    ));
+
+    const request = document.createElement('td');
+    request.textContent = pilot.gz_requested ? 'Oui' : 'Non';
+
+    const approved = document.createElement('td');
+    approved.append(actionButton(
+      pilot.gz_approved ? 'Retirer GZ' : 'Valider GZ',
+      'secondary',
+      () => updatePilot(pilot.id, { gz_approved: !pilot.gz_approved }, 'Badge GZ mis à jour')
+    ));
+
+    const role = document.createElement('td');
+    role.textContent = pilot.role;
+
+    const actions = document.createElement('td');
+    actions.append(actionButton('Supprimer le compte', 'danger', async () => {
+      if (!confirm(`Supprimer définitivement le compte de ${pilot.prenom} ${pilot.nom} ?`)) return;
+      const { error: deleteError } = await supabase.functions.invoke('delete-account', { body: { userId: pilot.id } });
+      if (deleteError) setStatus(status, 'La fonction de suppression doit être déployée dans Supabase.', 'error');
+      else { toast('Compte supprimé'); await load(); }
+    }));
+
+    row.append(identity, paddock, request, approved, role, actions);
+    body.append(row);
+  });
+}
+
+load();
