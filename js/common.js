@@ -1,4 +1,4 @@
-import { supabase } from './supabase-client.js';
+import { clearFrdSession, restoreFrdSession, saveFrdSession, supabase } from './supabase-client.js';
 import { IS_CONFIGURED } from './config.js';
 export const esc = value => String(value ?? '').trim();
 export function calculateExperience(dateString){if(!dateString)return '—';const start=new Date(`${dateString}T00:00:00`),now=new Date();let years=now.getFullYear()-start.getFullYear();const anniversary=new Date(now.getFullYear(),start.getMonth(),start.getDate());if(now<anniversary)years--;years=Math.max(0,years);if(years===0){const months=Math.max(0,(now.getFullYear()-start.getFullYear())*12+now.getMonth()-start.getMonth());return `${months} mois`;}return `${years} an${years>1?'s':''}`;}
@@ -28,19 +28,23 @@ async function waitForAuthSession(timeout = 3000) {
 }
 
 async function resolveAuthenticatedUser() {
-  let { data: { session } } = await supabase.auth.getSession();
+  let session = await restoreFrdSession();
   const code = new URLSearchParams(location.search).get('code');
   if (!session && code) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
       session = data.session;
+      saveFrdSession(session);
       history.replaceState({}, document.title, location.pathname);
     }
   }
   const hasAuthFragment = location.hash.includes('access_token=') || location.hash.includes('type=');
-  if (!session && (code || hasAuthFragment)) session = await waitForAuthSession();
+  if (!session && (code || hasAuthFragment)) {
+    session = await waitForAuthSession();
+    saveFrdSession(session);
+  }
   if (!session) return null;
   return session.user;
 }
 
-export async function initShell(){header();if(!supabase)return null;const user=await resolveAuthenticatedUser();document.querySelectorAll('[data-auth],[data-logout]').forEach(x=>x.hidden=!user);document.querySelectorAll('[data-guest]').forEach(x=>x.hidden=!!user);if(user){const {data:p}=await supabase.from('pilotes').select('role').eq('id',user.id).maybeSingle();document.querySelectorAll('[data-admin]').forEach(x=>x.hidden=p?.role!=='admin');document.querySelector('[data-logout]')?.addEventListener('click',async()=>{await supabase.auth.signOut();location.href='index.html'})}return user;}
+export async function initShell(){header();if(!supabase)return null;const user=await resolveAuthenticatedUser();document.querySelectorAll('[data-auth],[data-logout]').forEach(x=>x.hidden=!user);document.querySelectorAll('[data-guest]').forEach(x=>x.hidden=!!user);if(user){const {data:p}=await supabase.from('pilotes').select('role').eq('id',user.id).maybeSingle();document.querySelectorAll('[data-admin]').forEach(x=>x.hidden=p?.role!=='admin');document.querySelector('[data-logout]')?.addEventListener('click',async()=>{clearFrdSession();await supabase.auth.signOut();location.href='index.html'})}return user;}

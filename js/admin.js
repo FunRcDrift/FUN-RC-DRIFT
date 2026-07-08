@@ -1,6 +1,6 @@
-import { supabase } from './supabase-client.js';
+﻿import { supabase } from './supabase-client.js';
 import { IS_CONFIGURED } from './config.js';
-import { initShell, setupNotice, setStatus, toast } from './common.js?v=20260708e';
+import { initShell, setupNotice, setStatus, toast } from './common.js?v=20260708h';
 
 const user = await initShell();
 setupNotice(document.querySelector('.page'));
@@ -39,13 +39,13 @@ async function load() {
   data.forEach(pilot => {
     const row = document.createElement('tr');
     const identity = document.createElement('td');
-    identity.textContent = `${pilot.pseudo ? `${pilot.pseudo} — ` : ''}${pilot.prenom || ''} ${pilot.nom || ''}`;
+    identity.textContent = `${pilot.pseudo ? `${pilot.pseudo} â€” ` : ''}${pilot.prenom || ''} ${pilot.nom || ''}`;
 
     const paddock = document.createElement('td');
     paddock.append(actionButton(
       pilot.paddock_approved ? 'Retirer du paddock' : 'Accepter la carte',
       pilot.paddock_approved ? 'danger' : '',
-      () => updatePilot(pilot.id, { paddock_approved: !pilot.paddock_approved }, pilot.paddock_approved ? 'Carte retirée du paddock' : 'Carte publiée dans le paddock')
+      () => updatePilot(pilot.id, { paddock_approved: !pilot.paddock_approved }, pilot.paddock_approved ? 'Carte retirÃ©e du paddock' : 'Carte publiÃ©e dans le paddock')
     ));
 
     const request = document.createElement('td');
@@ -55,7 +55,7 @@ async function load() {
     approved.append(actionButton(
       pilot.gz_approved ? 'Retirer GZ' : 'Valider GZ',
       'secondary',
-      () => updatePilot(pilot.id, { gz_approved: !pilot.gz_approved }, 'Badge GZ mis à jour')
+      () => updatePilot(pilot.id, { gz_approved: !pilot.gz_approved }, 'Badge GZ mis Ã  jour')
     ));
 
     const role = document.createElement('td');
@@ -63,10 +63,10 @@ async function load() {
 
     const actions = document.createElement('td');
     actions.append(actionButton('Supprimer le compte', 'danger', async () => {
-      if (!confirm(`Supprimer définitivement le compte de ${pilot.prenom} ${pilot.nom} ?`)) return;
+      if (!confirm(`Supprimer dÃ©finitivement le compte de ${pilot.prenom} ${pilot.nom} ?`)) return;
       const { error: deleteError } = await supabase.functions.invoke('delete-account', { body: { userId: pilot.id } });
-      if (deleteError) setStatus(status, 'La fonction de suppression doit être déployée dans Supabase.', 'error');
-      else { toast('Compte supprimé'); await load(); }
+      if (deleteError) setStatus(status, 'La fonction de suppression doit Ãªtre dÃ©ployÃ©e dans Supabase.', 'error');
+      else { toast('Compte supprimÃ©'); await load(); }
     }));
 
     row.append(identity, paddock, request, approved, role, actions);

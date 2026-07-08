@@ -1,9 +1,9 @@
-import { supabase } from './supabase-client.js';
-import { initShell, setupNotice, calculateExperience, esc } from './common.js?v=20260708e';
+﻿import { supabase } from './supabase-client.js';
+import { initShell, setupNotice, calculateExperience, esc } from './common.js?v=20260708h';
 
 const demos = [
   {id:'demo-1',pseudo:'Sideways',nom:'Martin',prenom:'Alex',chassis:'Reve D RDX',date_debut_rc_drift:'2020-06-01',gz_approved:true,photo_url:'assets/logo-frd.jpeg',carrosserie_url:null},
-  {id:'demo-2',pseudo:'LeoSlide',nom:'Durand',prenom:'Léo',chassis:'Yokomo RD 2.0',date_debut_rc_drift:'2023-03-15',gz_approved:false,photo_url:'assets/logo-frd.jpeg',carrosserie_url:null},
+  {id:'demo-2',pseudo:'LeoSlide',nom:'Durand',prenom:'LÃ©o',chassis:'Yokomo RD 2.0',date_debut_rc_drift:'2023-03-15',gz_approved:false,photo_url:'assets/logo-frd.jpeg',carrosserie_url:null},
   {id:'demo-3',pseudo:'Yellow Line',nom:'Rossi',prenom:'Nina',chassis:'MST RMX 2.5',date_debut_rc_drift:'2022-09-01',gz_approved:true,photo_url:'assets/logo-frd.jpeg',carrosserie_url:null}
 ];
 
@@ -20,9 +20,9 @@ function card(p){
   if(p.gz_approved){const badge=document.createElement('img');badge.src='assets/gz-approved.svg';badge.alt='GZ Approved';badge.className='paddock-gz';top.append(label,badge)}else top.append(label);
   const pseudo=document.createElement('h2');pseudo.textContent=esc(p.pseudo)||esc(p.prenom)||'Pilote FRD';
   const first=document.createElement('p');first.className='paddock-firstname';first.textContent=esc(p.prenom);
-  const details=document.createElement('div');details.className='paddock-details';details.innerHTML='<span>Châssis</span>';const chassis=document.createElement('strong');chassis.textContent=esc(p.chassis)||'À compléter';details.append(chassis);
-  const exp=document.createElement('div');exp.className='paddock-exp';exp.innerHTML='<span>Expérience</span>';const value=document.createElement('strong');value.textContent=calculateExperience(p.date_debut_rc_drift);exp.append(value);
-  const open=document.createElement('span');open.className='paddock-open';open.textContent='OUVRIR LA FICHE  →';
+  const details=document.createElement('div');details.className='paddock-details';details.innerHTML='<span>ChÃ¢ssis</span>';const chassis=document.createElement('strong');chassis.textContent=esc(p.chassis)||'Ã€ complÃ©ter';details.append(chassis);
+  const exp=document.createElement('div');exp.className='paddock-exp';exp.innerHTML='<span>ExpÃ©rience</span>';const value=document.createElement('strong');value.textContent=calculateExperience(p.date_debut_rc_drift);exp.append(value);
+  const open=document.createElement('span');open.className='paddock-open';open.textContent='OUVRIR LA FICHE  â†’';
   body.append(top,pseudo,first,details,exp,open);link.append(visuals,body);return link;
 }
 
