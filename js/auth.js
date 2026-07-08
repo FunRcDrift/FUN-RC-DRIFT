@@ -6,8 +6,29 @@ const form = document.querySelector('form');
 const status = document.querySelector('#status');
 let recoveryReady = form?.id !== 'passwordForm';
 
-await initShell();
+function friendlyAuthMessage(error) {
+  const message = String(error?.message || '').toLowerCase();
+  if (message.includes('email rate limit exceeded')) {
+    return 'Trop d’emails ont été demandés. Supabase limite temporairement les envois : attends environ une heure avant de réessayer.';
+  }
+  if (message.includes('email address not authorized')) {
+    return 'Cette adresse ne peut pas recevoir d’email tant que le service SMTP du site n’est pas configuré.';
+  }
+  if (message.includes('email not confirmed')) {
+    return 'Ton email n’est pas encore confirmé. Ouvre le dernier email reçu et clique sur le lien de validation.';
+  }
+  if (message.includes('invalid login credentials')) {
+    return 'Email ou mot de passe incorrect.';
+  }
+  return error?.message || 'Une erreur est survenue.';
+}
+
+const currentUser = await initShell();
 setupNotice(document.querySelector('main'));
+
+if (currentUser && ['signupForm', 'loginForm', 'resetForm'].includes(form?.id)) {
+  location.replace('profil.html');
+}
 
 function lockPasswordForm(locked) {
   if (!form || form.id !== 'passwordForm') return;
@@ -117,7 +138,7 @@ form?.addEventListener('submit', async event => {
       setTimeout(() => location.href = 'connexion.html', 1600);
     }
   } catch (error) {
-    setStatus(status, error.message || 'Une erreur est survenue.', 'error');
+    setStatus(status, friendlyAuthMessage(error), 'error');
   } finally {
     form.classList.remove('loading');
   }

@@ -6,4 +6,42 @@ export function header(){const el=document.createElement('header');el.className=
 export function toast(message){let el=document.querySelector('.toast');if(!el){el=document.createElement('div');el.className='toast';document.body.append(el)}el.textContent=message;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2600)}
 export function setStatus(el,message,type=''){el.textContent=message;el.className=`status ${type}`;el.hidden=false}
 export function setupNotice(parent){if(IS_CONFIGURED)return;const n=document.createElement('div');n.className='setup-notice';n.innerHTML='<strong>Mode aperçu</strong> — Connecte ce site à Supabase dans <code>js/config.js</code> pour activer les comptes, les profils et les photos.';parent.prepend(n)}
-export async function initShell(){header();if(!supabase)return null;const {data:{user}}=await supabase.auth.getUser();document.querySelectorAll('[data-auth],[data-logout]').forEach(x=>x.hidden=!user);document.querySelectorAll('[data-guest]').forEach(x=>x.hidden=!!user);if(user){const {data:p}=await supabase.from('pilotes').select('role').eq('id',user.id).maybeSingle();document.querySelectorAll('[data-admin]').forEach(x=>x.hidden=p?.role!=='admin');document.querySelector('[data-logout]')?.addEventListener('click',async()=>{await supabase.auth.signOut();location.href='index.html'})}return user;}
+async function waitForAuthSession(timeout = 3000) {
+  return new Promise(resolve => {
+    let finished = false;
+    let subscription;
+    const listener = supabase.auth.onAuthStateChange((event, session) => {
+      if (!finished && session && ['SIGNED_IN', 'INITIAL_SESSION', 'PASSWORD_RECOVERY'].includes(event)) {
+        finished = true;
+        subscription?.unsubscribe();
+        resolve(session);
+      }
+    });
+    subscription = listener.data.subscription;
+    setTimeout(() => {
+      if (finished) return;
+      finished = true;
+      subscription?.unsubscribe();
+      resolve(null);
+    }, timeout);
+  });
+}
+
+async function resolveAuthenticatedUser() {
+  let { data: { session } } = await supabase.auth.getSession();
+  const code = new URLSearchParams(location.search).get('code');
+  if (!session && code) {
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    if (!error) {
+      session = data.session;
+      history.replaceState({}, document.title, location.pathname);
+    }
+  }
+  const hasAuthFragment = location.hash.includes('access_token=') || location.hash.includes('type=');
+  if (!session && (code || hasAuthFragment)) session = await waitForAuthSession();
+  if (!session) return null;
+  const { data: { user }, error } = await supabase.auth.getUser();
+  return error ? null : user;
+}
+
+export async function initShell(){header();if(!supabase)return null;const user=await resolveAuthenticatedUser();document.querySelectorAll('[data-auth],[data-logout]').forEach(x=>x.hidden=!user);document.querySelectorAll('[data-guest]').forEach(x=>x.hidden=!!user);if(user){const {data:p}=await supabase.from('pilotes').select('role').eq('id',user.id).maybeSingle();document.querySelectorAll('[data-admin]').forEach(x=>x.hidden=p?.role!=='admin');document.querySelector('[data-logout]')?.addEventListener('click',async()=>{await supabase.auth.signOut();location.href='index.html'})}return user;}
