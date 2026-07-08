@@ -116,7 +116,15 @@ form?.addEventListener('submit', async event => {
       const { data, error } = await supabase.auth.signInWithPassword({ email: form.email.value, password: form.password.value });
       if (error) throw error;
       if (!data.session) throw new Error('La session n’a pas pu être créée. Recharge la page et réessaie.');
-      location.replace(new URL('profil.html', location.href).href);
+      const { error: sessionError } = await supabase.auth.setSession({
+        access_token: data.session.access_token,
+        refresh_token: data.session.refresh_token
+      });
+      if (sessionError) throw sessionError;
+      const { data: storedSession } = await supabase.auth.getSession();
+      if (!storedSession.session) throw new Error('Le navigateur n’a pas pu enregistrer la session. Autorise le stockage du site puis réessaie.');
+      setStatus(status, 'Connexion réussie. Ouverture de ton profil…', 'success');
+      setTimeout(() => location.replace(new URL('profil.html', location.href).href), 500);
     }
 
     if (form.id === 'resetForm') {
